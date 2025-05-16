@@ -6,6 +6,8 @@ on:
 jobs:
   track-visitors:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Allows writing to repo (commits, pushes)
     steps:
       - uses: actions/checkout@v4
       - name: Fetch Visitor Data
