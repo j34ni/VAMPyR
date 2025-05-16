@@ -1,0 +1,27 @@
+name: Track Repository Visitors
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch: # Allows manual triggering
+jobs:
+  track-visitors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Visitor Data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p traffic
+          VIEWS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          https://api.github.com/repos/${{ github.repository }}/traffic/views)
+          TOTAL=$(echo "$VIEWS" | jq '.count')
+          UNIQUE=$(echo "$VIEWS" | jq '.uniques')
+          echo "$(date +%F),$TOTAL,$UNIQUE" >> traffic/visitors.csv
+      - name: Commit Visitor Data
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add traffic/visitors.csv
+          git commit -m "Update visitor data for $(date +%F)" || echo "No changes"
+          git push
