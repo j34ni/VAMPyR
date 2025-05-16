@@ -7,7 +7,7 @@ jobs:
   track-visitors:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Allows writing to repo (commits, pushes)
+      contents: write # Allows writing to repo
     steps:
       - uses: actions/checkout@v4
       - name: Fetch Visitor Data
@@ -17,9 +17,15 @@ jobs:
           mkdir -p traffic
           VIEWS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
           https://api.github.com/repos/${{ github.repository }}/traffic/views)
-          TOTAL=$(echo "$VIEWS" | jq '.count')
-          UNIQUE=$(echo "$VIEWS" | jq '.uniques')
-          echo "$(date +%F),$TOTAL,$UNIQUE" >> traffic/visitors.csv
+          echo "API Response: $VIEWS" # Log for debugging
+          TOTAL=$(echo "$VIEWS" | jq '.count // 0') # Default to 0 if null
+          UNIQUE=$(echo "$VIEWS" | jq '.uniques // 0') # Default to 0 if null
+          if [[ "$TOTAL" -gt 0 || "$UNIQUE" -gt 0 ]]; then
+            echo "$(date +%F),$TOTAL,$UNIQUE" >> traffic/visitors.csv
+          else
+            echo "No visitor data available, skipping CSV update"
+            echo "$(date +%F),0,0" >> traffic/visitors.csv
+          fi
       - name: Commit Visitor Data
         run: |
           git config user.name "GitHub Action"
